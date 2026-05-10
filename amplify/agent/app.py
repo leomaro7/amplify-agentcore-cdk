@@ -60,29 +60,47 @@ def convert_event(event) -> dict | None:
         return None
 
 
-def _load_history(actor_id: str, session_id: str) -> list:
-    """STMから会話履歴を読み込み、Strands形式に変換"""
+def _fetch_turns(actor_id: str, session_id: str, k: int = 50) -> list:
+    """STMから会話ターンを取得する共通処理"""
     if not _memory_client or not actor_id or not session_id:
         return []
     try:
-        turns = _memory_client.get_last_k_turns(
+        return _memory_client.get_last_k_turns(
             memory_id=MEMORY_ID,
             actor_id=actor_id,
             session_id=session_id,
-            k=10,
+            k=k,
         )
-        messages = []
-        for turn in turns:
-            for msg in turn:
-                role = msg.get('role', '').upper()
-                text = msg.get('content', {}).get('text', '')
-                if role == 'USER':
-                    messages.append({'role': 'user', 'content': [{'text': text}]})
-                elif role == 'ASSISTANT':
-                    messages.append({'role': 'assistant', 'content': [{'text': text}]})
-        return messages
     except Exception:
         return []
+
+
+def _load_history(actor_id: str, session_id: str) -> list:
+    """STMから会話履歴を読み込み、Strands形式に変換（エージェントの推論コンテキスト用）"""
+    messages = []
+    for turn in _fetch_turns(actor_id, session_id, k=10):
+        for msg in turn:
+            role = msg.get('role', '').upper()
+            text = msg.get('content', {}).get('text', '')
+            if role == 'USER':
+                messages.append({'role': 'user', 'content': [{'text': text}]})
+            elif role == 'ASSISTANT':
+                messages.append({'role': 'assistant', 'content': [{'text': text}]})
+    return messages
+
+
+def _load_display_history(actor_id: str, session_id: str) -> list:
+    """STMから会話履歴を読み込み、フロントエンド表示用フォーマットに変換"""
+    messages = []
+    for turn in _fetch_turns(actor_id, session_id, k=50):
+        for msg in turn:
+            role = msg.get('role', '').upper()
+            text = msg.get('content', {}).get('text', '')
+            if role == 'USER':
+                messages.append({'role': 'user', 'content': text})
+            elif role == 'ASSISTANT':
+                messages.append({'role': 'assistant', 'content': text})
+    return messages
 
 
 def _save_turn(actor_id: str, session_id: str, prompt: str, response: str) -> None:
@@ -103,9 +121,15 @@ def _save_turn(actor_id: str, session_id: str, prompt: str, response: str) -> No
 @app.entrypoint
 async def invoke_agent(payload, context):
 
-    prompt = payload.get("prompt", "")
     session_id = context.session_id or ""
     actor_id = _get_actor_id()
+
+    # 履歴取得リクエストの場合はUI表示用の履歴を返して終了
+    if payload.get('action') == 'get_history':
+        yield {'type': 'history', 'data': _load_display_history(actor_id, session_id)}
+        return
+
+    prompt = payload.get("prompt", "")
 
     # STMから会話履歴を取得してエージェントの初期メッセージに設定
     history = _load_history(actor_id, session_id)

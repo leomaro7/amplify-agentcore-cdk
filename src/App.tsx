@@ -7,6 +7,7 @@ import outputs from '../amplify_outputs.json';
 
 // Amplify outputs から設定を取得
 const AGENT_ARN = outputs.custom?.agentRuntimeArn;
+const SESSION_KEY = 'chat_session_id';
 
 // チャットメッセージの型定義
 interface Message {
@@ -18,18 +19,73 @@ interface Message {
   toolName?: string;
 }
 
+function getOrCreateSessionId(): string {
+  const stored = localStorage.getItem(SESSION_KEY);
+  if (stored) return stored;
+  const newId = crypto.randomUUID();
+  localStorage.setItem(SESSION_KEY, newId);
+  return newId;
+}
+
 // メインのアプリケーションコンポーネント
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const sessionId = useRef(crypto.randomUUID());
+  const sessionId = useRef(getOrCreateSessionId());
 
   // メッセージ追加時に自動スクロール
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // 起動時に STM から過去の会話履歴を取得
+  useEffect(() => {
+    (async () => {
+      try {
+        const session = await fetchAuthSession();
+        const accessToken = session.tokens?.accessToken?.toString();
+        if (!accessToken) return;
+
+        const url = `https://bedrock-agentcore.ap-northeast-1.amazonaws.com/runtimes/${encodeURIComponent(AGENT_ARN)}/invocations?qualifier=DEFAULT`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'X-Amzn-Bedrock-AgentCore-Runtime-Session-Id': sessionId.current,
+          },
+          body: JSON.stringify({ action: 'get_history' }),
+        });
+
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            const event = JSON.parse(data);
+            if (event.type === 'history') {
+              setMessages(event.data.map((m: { role: string; content: string }) => ({
+                id: crypto.randomUUID(),
+                role: m.role as 'user' | 'assistant',
+                content: m.content,
+              })));
+            }
+          }
+        }
+      } catch {
+        // 履歴取得失敗時は空のまま続行
+      } finally {
+        setHistoryLoading(false);
+      }
+    })();
+  }, []);
 
   // フォーム送信処理
   const handleSubmit = async (e: FormEvent) => {
@@ -138,6 +194,9 @@ function App() {
 
       <div className="message-area">
         <div className="message-container">
+          {historyLoading && (
+            <div className="history-loading">会話履歴を読み込み中…</div>
+          )}
           {messages.map(msg => (
             <div key={msg.id} className={`message-row ${msg.role}`}>
               <div className={`bubble ${msg.role}`}>
@@ -160,8 +219,8 @@ function App() {
 
       <div className="form-wrapper">
         <form onSubmit={handleSubmit} className="form">
-          <input value={input} onChange={e => setInput(e.target.value)} placeholder="メッセージを入力..." disabled={loading} className="input" />
-          <button type="submit" disabled={loading || !input.trim()} className="button">
+          <input value={input} onChange={e => setInput(e.target.value)} placeholder="メッセージを入力..." disabled={loading || historyLoading} className="input" />
+          <button type="submit" disabled={loading || historyLoading || !input.trim()} className="button">
             {loading ? '⌛️' : '送信'}
           </button>
         </form>

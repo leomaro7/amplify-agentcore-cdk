@@ -63,6 +63,7 @@
 
 /* 思考中・ツール使用中 */
 .thinking { color: #9ca3af; font-style: italic; }
+.history-loading { text-align: center; color: #9ca3af; font-size: 0.85rem; padding: 16px; }
 .tool-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
 .tool-status.active { color: #667eea; }
 .tool-status.completed { color: #10b981; }
