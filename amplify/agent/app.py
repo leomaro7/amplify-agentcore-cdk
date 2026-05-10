@@ -48,7 +48,7 @@ async def invoke_agent(payload, context):
 
     # AIエージェントを作成
     agent = Agent(
-        model="jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+        model="global.amazon.nova-2-lite-v1:0",
         system_prompt="aws.amazon.com/about-aws/whats-new/recent/feed からRSSを取得して",
         tools=[rss]
     )
