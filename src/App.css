@@ -1,27 +1,90 @@
-/* タイトルバー（フォームと同じテイスト） */
+/* アプリ全体：サイドバー + メインの横並び */
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: #fafbfc;
+}
+
+/* サイドバー */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.new-chat-btn {
+  margin: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: transparent;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.new-chat-btn:hover { background: rgba(255,255,255,0.1); }
+
+.session-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px;
+}
+
+.session-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  transition: background 0.15s;
+}
+.session-item:hover { background: rgba(255,255,255,0.08); }
+.session-item.active { background: rgba(102, 126, 234, 0.3); }
+
+.session-title {
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.session-date {
+  color: #6b7280;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+/* メインエリア */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ヘッダー */
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   text-align: center;
-  padding: 16px 24px;
+  padding: 14px 24px;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  flex-shrink: 0;
 }
-.title { font-size: 1.25rem; font-weight: 600; margin: 0; }
-.subtitle { font-size: 0.85rem; opacity: 0.9; margin: 4px 0 0; }
-
-/* コンテナ */
-.container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 100%;
-  background: #fafbfc;
-}
+.title { font-size: 1.15rem; font-weight: 600; margin: 0; }
+.subtitle { font-size: 0.8rem; opacity: 0.9; margin: 3px 0 0; }
 
 /* メッセージ表示エリア */
 .message-area {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -31,6 +94,13 @@
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+}
+
+.history-loading, .empty-state {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  padding: 48px 16px;
 }
 
 /* メッセージ行 */
@@ -63,7 +133,6 @@
 
 /* 思考中・ツール使用中 */
 .thinking { color: #9ca3af; font-style: italic; }
-.history-loading { text-align: center; color: #9ca3af; font-size: 0.85rem; padding: 16px; }
 .tool-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
 .tool-status.active { color: #667eea; }
 .tool-status.completed { color: #10b981; }
@@ -73,6 +142,7 @@
   background: white;
   border-top: 1px solid #e5e7eb;
   padding: 16px 24px;
+  flex-shrink: 0;
 }
 .form {
   display: flex;
