@@ -5,7 +5,7 @@ export const auth = defineAuth({
   loginWith: {
     email: true
   },
-  multifactorAuthentication: {
-    enabled: false
-  }  
+  multifactor: {
+    mode: 'OFF'
+  }
 });
