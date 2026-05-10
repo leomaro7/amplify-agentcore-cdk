@@ -19,10 +19,11 @@ export function createAgentCoreRuntime(
     platform: Platform.LINUX_ARM64,
   });
 
-  // スタック名から環境識別子を抽出（英数字とアンダースコアのみ許可）
-  const stackNameParts = stack.stackName.split('-');
-  const rawEnvId = stackNameParts.length >= 4 ? stackNameParts[3] : stack.stackName.slice(-10);
-  const envId = rawEnvId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  // Amplify コンテキストから appId と branchName を取得して安定した識別子を生成
+  // スタック名ではなくコンテキスト値を使うことでビルドごとに名前が変わらない
+  const appId = (stack.node.tryGetContext('amplify-backend-namespace') as string | undefined) ?? stack.account;
+  const branchName = (stack.node.tryGetContext('amplify-backend-name') as string | undefined) ?? 'main';
+  const envId = `${appId}_${branchName}`.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
 
   // STM用のMemoryリソースを作成（LTM戦略なし＝短期記憶のみ）
   const memory = new agentcore.Memory(stack, 'AgentMemory', {
