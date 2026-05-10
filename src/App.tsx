@@ -24,6 +24,7 @@ function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sessionId = useRef(crypto.randomUUID());
 
   // メッセージ追加時に自動スクロール
   useEffect(() => {
@@ -51,7 +52,11 @@ function App() {
     const url = `https://bedrock-agentcore.ap-northeast-1.amazonaws.com/runtimes/${encodeURIComponent(AGENT_ARN)}/invocations?qualifier=DEFAULT`;
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Amzn-Bedrock-AgentCore-Runtime-Session-Id': sessionId.current,
+      },
       body: JSON.stringify({ prompt: userMessage.content }),
     });
 
